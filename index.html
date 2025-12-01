@@ -1,52 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Video Call</title>
+    <title>Live Teaching Call</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- PeerJS (WebRTC Library) -->
+
+    <!-- PeerJS -->
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <style>
         video {
             width: 100%;
-            max-height: 300px;
+            max-height: 250px;
             border: 2px solid #007bff;
             border-radius: 10px;
+        }
+        #workspace {
+            width: 100%;
+            height: 500px;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
         }
     </style>
 </head>
 
 <body class="bg-light">
 
-<div class="container py-5">
-    <h2 class="text-center mb-4">Live Video Call</h2>
-
+<div class="container-fluid py-4">
     <div class="row">
+        
+        <!-- Left Column: Video Call -->
         <div class="col-md-6">
-            <h5>Your Video</h5>
-            <video id="myVideo" autoplay muted></video>
+            <h3 class="text-center">Video Call</h3>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5>Your Video</h5>
+                    <video id="myVideo" autoplay muted></video>
+                </div>
+                <div class="col-md-6">
+                    <h5>Student Video</h5>
+                    <video id="otherVideo" autoplay></video>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Teacher ID Setup -->
+            <div class="text-center">
+                <p>Set Your Teaching ID:</p>
+                <input id="myIdInput" class="form-control text-center mb-2" placeholder="Enter ID (e.g. teacher001)">
+                <button class="btn btn-success mb-3" onclick="setMyId()">Set ID</button>
+
+                <p>Enter Student's ID:</p>
+                <input id="otherId" class="form-control text-center mb-3">
+
+                <button class="btn btn-primary mb-2" onclick="callUser()">Start Call</button>
+                <button class="btn btn-danger mb-2" onclick="endCall()">End Call</button>
+                <br>
+
+                <button class="btn btn-secondary mb-2" onclick="toggleMute()">Mute / Unmute</button>
+                <button class="btn btn-warning mb-2" onclick="shareScreen()">Share Screen</button>
+                <button class="btn btn-info mb-2" onclick="switchBackToCamera()">Switch Back to Camera</button>
+            </div>
         </div>
 
+        <!-- Right Column: Teaching Workspace -->
         <div class="col-md-6">
-            <h5>Student Video</h5>
-            <video id="otherVideo" autoplay></video>
+            <h3 class="text-center">Teaching Workspace</h3>
+
+            <div id="workspace" contenteditable="true">
+                Type, paste, or write your work here...
+            </div>
         </div>
-    </div>
 
-    <hr>
-
-    <div class="text-center">
-        <p>Your Call ID:</p>
-        <input id="myId" class="form-control text-center mb-3" readonly>
-
-        <p>Enter Student's ID:</p>
-        <input id="otherId" class="form-control text-center mb-3">
-
-        <button class="btn btn-primary" onclick="callUser()">Start Call</button>
     </div>
 </div>
 
@@ -54,33 +85,127 @@
     const myVideo = document.getElementById("myVideo");
     const otherVideo = document.getElementById("otherVideo");
 
-    // Create PeerJS connection
-    const peer = new Peer();
+    let peer = null;
+    let currentCall = null;
+    let localStream = null;
+    let screenStream = null;
 
-    peer.on('open', id => {
-        document.getElementById("myId").value = id;
-    });
-
-    // Get camera + microphone
+    // Get the camera + microphone first
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
+            localStream = stream;
             myVideo.srcObject = stream;
-
-            peer.on('call', call => {
-                call.answer(stream);
-                call.on('stream', userStream => {
-                    otherVideo.srcObject = userStream;
-                });
-            });
-
-            window.callUser = () => {
-                const otherId = document.getElementById("otherId").value;
-                const call = peer.call(otherId, stream);
-                call.on('stream', userStream => {
-                    otherVideo.srcObject = userStream;
-                });
-            };
         });
+
+    // TEACHER SETS OWN ID
+    window.setMyId = () => {
+        const customId = document.getElementById("myIdInput").value.trim();
+
+        if (!customId) {
+            alert("Please enter a valid ID.");
+            return;
+        }
+
+        peer = new Peer(customId);
+
+        peer.on('open', id => {
+            alert("Your teaching ID is now: " + id);
+        });
+
+        // When student calls the teacher
+        peer.on('call', call => {
+            currentCall = call;
+            call.answer(localStream);
+
+            call.on('stream', userStream => {
+                otherVideo.srcObject = userStream;
+            });
+        });
+    };
+
+    // TEACHER CALLS STUDENT
+    window.callUser = () => {
+        if (!peer) {
+            alert("Please set your ID first!");
+            return;
+        }
+
+        const otherId = document.getElementById("otherId").value.trim();
+        if (!otherId) {
+            alert("Enter the student's ID");
+            return;
+        }
+
+        const call = peer.call(otherId, localStream);
+        currentCall = call;
+
+        call.on('stream', userStream => {
+            otherVideo.srcObject = userStream;
+        });
+    };
+
+    // END CALL
+    window.endCall = () => {
+        if (currentCall) {
+            currentCall.close();
+            currentCall = null;
+        }
+
+        if (otherVideo.srcObject) {
+            otherVideo.srcObject.getTracks().forEach(t => t.stop());
+            otherVideo.srcObject = null;
+        }
+    };
+
+    // MUTE / UNMUTE
+    window.toggleMute = () => {
+        if (!localStream) return;
+
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+    };
+
+    // SCREEN SHARE
+    window.shareScreen = async () => {
+        if (!currentCall) {
+            alert("Start the call before sharing your screen.");
+            return;
+        }
+
+        try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenTrack = screenStream.getVideoTracks()[0];
+
+            const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === "video");
+            sender.replaceTrack(screenTrack);
+
+            myVideo.srcObject = screenStream;
+
+            screenTrack.onended = () => {
+                switchBackToCamera();
+            };
+
+        } catch (err) {
+            console.log("Screen share cancelled");
+        }
+    };
+
+    // SWITCH BACK TO CAMERA
+    window.switchBackToCamera = () => {
+        if (!localStream || !currentCall) return;
+
+        const cameraTrack = localStream.getVideoTracks()[0];
+        const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === "video");
+
+        sender.replaceTrack(cameraTrack);
+
+        myVideo.srcObject = localStream;
+
+        if (screenStream) {
+            screenStream.getTracks().forEach(t => t.stop());
+        }
+    };
 </script>
 
 </body>

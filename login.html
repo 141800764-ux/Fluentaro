@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Fluentaro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Login</h2>
+    <form id="loginForm" class="mx-auto" style="max-width: 400px;">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email address</label>
+        <input type="email" id="email" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" class="form-control" required minlength="6" />
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Log In</button>
+      <div class="mt-3 text-center">
+        <a href="signup.html">Don't have an account? Sign Up</a>
+      </div>
+      <div id="errorMsg" class="mt-3 text-danger text-center"></div>
+    </form>
+  </div>
+
+  <script type="module">
+    import { auth } from './firebase-config.js';
+    import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+    const loginForm = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // Redirect logged in user automatically
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        window.location.href = "dashboard.html";
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+
+      const email = loginForm.email.value.trim();
+      const password = loginForm.password.value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // Redirect handled by onAuthStateChanged
+      } catch (error) {
+        errorMsg.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
