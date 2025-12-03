@@ -34,9 +34,7 @@
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
     const usersTableBody = document.querySelector('#usersTable tbody');
-
-    // Protect admin page — only allow admin email to view
-    const ADMIN_EMAIL = "shaakierah.ismail1@gmail.com"; // <<<< Replace with your email!
+    const ADMIN_EMAIL = "shaakierah.ismail1@gmail.com";
 
     onAuthStateChanged(auth, user => {
       if (!user || user.email !== ADMIN_EMAIL) {
@@ -44,7 +42,6 @@
         window.location.href = "login.html";
         return;
       }
-
       loadUsers();
     });
 
@@ -53,11 +50,9 @@
       const querySnapshot = await getDocs(q);
 
       usersTableBody.innerHTML = "";
-
       querySnapshot.forEach(doc => {
         const data = doc.data();
         const date = data.createdAt?.toDate().toLocaleString() || "N/A";
-
         usersTableBody.innerHTML += `
           <tr>
             <td>${data.email}</td>
@@ -69,9 +64,7 @@
     }
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      });
+      signOut(auth).then(() => window.location.href = "login.html");
     });
   </script>
 </body>
