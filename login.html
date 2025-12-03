@@ -33,11 +33,8 @@
     const loginForm = document.getElementById('loginForm');
     const errorMsg = document.getElementById('errorMsg');
 
-    // Redirect logged in user automatically
     onAuthStateChanged(auth, user => {
-      if (user) {
-        window.location.href = "dashboard.html";
-      }
+      if (user) window.location.href = "dashboard.html";
     });
 
     loginForm.addEventListener('submit', async (e) => {
@@ -49,7 +46,6 @@
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        // Redirect handled by onAuthStateChanged
       } catch (error) {
         errorMsg.textContent = error.message;
       }

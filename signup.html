@@ -45,13 +45,13 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Save user details in Firestore (for admin viewing)
+        // Save user details in Firestore
         await setDoc(doc(db, "users", user.uid), {
           email: user.email,
           createdAt: serverTimestamp()
         });
 
-        // Redirect to dashboard after signup
+        // Redirect to dashboard
         window.location.href = "dashboard.html";
       } catch (error) {
         errorMsg.textContent = error.message;
