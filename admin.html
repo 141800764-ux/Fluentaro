@@ -29,43 +29,37 @@
   </div>
 
   <script type="module">
-    import { auth, db } from './firebase-config.js';
-    import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { supabase } from "./supabase-config.js";
 
-    const usersTableBody = document.querySelector('#usersTable tbody');
-    const ADMIN_EMAIL = "shaakierah.ismail1@gmail.com";
+const ADMIN_EMAIL = "shaakierah.ismail1@gmail.com";
+const tableBody = document.querySelector("#usersTable tbody");
 
-    onAuthStateChanged(auth, user => {
-      if (!user || user.email !== ADMIN_EMAIL) {
-        alert("Access denied. Admins only.");
-        window.location.href = "login.html";
-        return;
-      }
-      loadUsers();
-    });
+async function checkAdmin() {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user || data.user.email !== ADMIN_EMAIL) {
+    alert("Admins only.");
+    window.location.href = "login.html";
+  }
+}
 
-    async function loadUsers() {
-      const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
+async function loadUsers() {
+  const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
 
-      usersTableBody.innerHTML = "";
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        const date = data.createdAt?.toDate().toLocaleString() || "N/A";
-        usersTableBody.innerHTML += `
-          <tr>
-            <td>${data.email}</td>
-            <td>${date}</td>
-            <td>${doc.id}</td>
-          </tr>
-        `;
-      });
-    }
+  tableBody.innerHTML = "";
+  data.forEach(user => {
+    tableBody.innerHTML += `
+      <tr>
+        <td>${user.email}</td>
+        <td>${new Date(user.created_at).toLocaleString()}</td>
+        <td>${user.id}</td>
+      </tr>
+    `;
+  });
+}
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      signOut(auth).then(() => window.location.href = "login.html");
-    });
-  </script>
+await checkAdmin();
+await loadUsers();
+</script>
+
 </body>
 </html>

@@ -27,29 +27,31 @@
   </div>
 
   <script type="module">
-    import { auth } from './firebase-config.js';
-    import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { supabase } from './supabase-config.js';
 
-    const loginForm = document.getElementById('loginForm');
-    const errorMsg = document.getElementById('errorMsg');
+const loginForm = document.getElementById("loginForm");
+const errorMsg = document.getElementById("errorMsg");
 
-    onAuthStateChanged(auth, user => {
-      if (user) window.location.href = "dashboard.html";
-    });
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  errorMsg.textContent = "";
 
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = '';
+  const email = loginForm.email.value.trim();
+  const password = loginForm.password.value;
 
-      const email = loginForm.email.value.trim();
-      const password = loginForm.password.value;
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
 
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (error) {
-        errorMsg.textContent = error.message;
-      }
-    });
-  </script>
+  if (error) {
+    errorMsg.textContent = error.message;
+    return;
+  }
+
+  window.location.href = "dashboard.html";
+});
+</script>
+
 </body>
 </html>

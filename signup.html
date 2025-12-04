@@ -27,36 +27,39 @@
   </div>
 
   <script type="module">
-    import { auth, db } from './firebase-config.js';
-    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-    import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { supabase } from './supabase-config.js';
 
-    const signupForm = document.getElementById('signupForm');
-    const errorMsg = document.getElementById('errorMsg');
+const signupForm = document.getElementById("signupForm");
+const errorMsg = document.getElementById("errorMsg");
 
-    signupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = '';
+signupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  errorMsg.textContent = "";
 
-      const email = signupForm.email.value.trim();
-      const password = signupForm.password.value;
+  const email = signupForm.email.value.trim();
+  const password = signupForm.password.value;
 
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+  const { data, error } = await supabase.auth.signUp({
+    email: email,
+    password: password,
+  });
 
-        // Save user details in Firestore
-        await setDoc(doc(db, "users", user.uid), {
-          email: user.email,
-          createdAt: serverTimestamp()
-        });
+  if (error) {
+    errorMsg.textContent = error.message;
+    return;
+  }
 
-        // Redirect to dashboard
-        window.location.href = "dashboard.html";
-      } catch (error) {
-        errorMsg.textContent = error.message;
-      }
-    });
-  </script>
+  // Save user profile in DB
+  await supabase.from("profiles").insert([
+    {
+      id: data.user.id,
+      email: email,
+    }
+  ]);
+
+  window.location.href = "dashboard.html";
+});
+</script>
+
 </body>
 </html>
